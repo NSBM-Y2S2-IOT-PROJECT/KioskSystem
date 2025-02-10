@@ -11,3 +11,10 @@ class Info:
     def warning(self, data):
         # show [WARNING] in yellow color
         print("\033[93m[WARNING]\033[0m", data)
+
+    def debug(self, data):
+        # show [DEBUG] in cyan color
+        print("\033[96m[DEBUG]\033[0m", data)
+
+    def command(self, data):
+        print("\033[96m[OVERRIDE]\033[0m", data, ">")
