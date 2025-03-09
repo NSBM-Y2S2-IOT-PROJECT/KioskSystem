@@ -8,12 +8,15 @@ import cv2
 import time
 import json
 import threading
+from pynput.mouse import Controller, Button
+global version, zrncode, mouseCtrl, mouseController
 
-global version, zrncode
+mouseCotroller = Controller()
 version = 1.0
 zrncode = ('\n\n'+Fore.LIGHTBLUE_EX + '[ZRN-PRJCT-VISUM-ENGINE-1.X]' + Style.RESET_ALL)
 global kinect
 debug = True
+mouseCtrl = True
 
 
 def systemInit():
@@ -57,7 +60,14 @@ def showDebugInfo(data):
     if debug:
         Info.debug("",data)
 
+def mouseControl(event, x, y, flags, param):
+    # Map Data Accordingly
+    global mouseCotroller
+    Info.info("", f"DEBUG X: {x} | Y: {y}")
+    mouseCotroller.position = (int(x), int(y))
+
 def streamCentroidData():
+    global mouseCtrl
     while True:
         depth_data = kinect.getDepth()
         filtered_depth, mask, depth_mm = kinect.processDepth(depth_data)
@@ -88,6 +98,11 @@ def streamCentroidData():
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
         showDebugInfo(f"{centroid}, {avg_depth}")
+        try:
+            if mouseCtrl:
+                mouseControl(0, centroid[0], centroid[1], 0, 0)
+        except Exception as e:
+            Info.error("",f"Mouse Control Failed ! {e}")
 
 
 if __name__ == "__main__":
@@ -112,5 +127,9 @@ if __name__ == "__main__":
         x = input("Waiting For Command >")
         if x == "thread.cd.stop":
             cdThread.stop()
+        elif x == "init.mouse":
+            mouseCtrl = True
+        elif x == "deinit.mouse":
+            mouseCtrl = False
         # if x.split(".")[0] == "thread":
         #     ifx.split(".")[1] == "stop"
