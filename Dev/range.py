@@ -6,15 +6,11 @@ import numpy as np
 def get_depth():
     return freenect.sync_get_depth()[0]
 
-# Function to process the depth data and filter pixels within the range [100mm, 300mm]
 def process_depth(depth_data):
     # Convert depth data to millimeters
-    depth_mm = depth_data * 0.124987  # Convert from raw depth to millimeters
+    depth_mm = depth_data * 0.124987
 
-    # Create a mask for pixels within the range [50mm, 100mm]
     mask = np.logical_and(depth_mm >= 10, depth_mm <= 100)
-
-    # Create an output image where only the pixels within the range are shown
     output = np.zeros_like(depth_mm)
     output[mask] = 255  # Set pixels within the range to white (255)
 
@@ -22,25 +18,19 @@ def process_depth(depth_data):
 
 # Function to calculate the centroid and average depth of the masked region
 def calculate_centroid_and_depth(mask, depth_mm):
-    # Find the coordinates of the non-zero pixels in the mask
     y_coords, x_coords = np.nonzero(mask)
 
     if len(x_coords) == 0 or len(y_coords) == 0:
-        return None, None  # No pixels in the range
+        return None, None 
 
-    # Calculate the centroid (average of x and y coordinates)
     centroid_x = int(np.mean(x_coords))
     centroid_y = int(np.mean(y_coords))
-
-    # Calculate the average depth of the masked region
     average_depth = np.mean(depth_mm[mask])
 
     return (centroid_x, centroid_y), average_depth
 
-# Main loop
 def main():
     while True:
-        # Get depth data
         depth_data = get_depth()
 
         # Process depth data to show only pixels within the range [50mm, 100mm]

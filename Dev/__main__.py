@@ -1,4 +1,4 @@
-from numpy.lib.function_base import average
+from numpy import average
 from translateKinect import Kinect
 from infoWrap import Info
 from kinectUSBMonitor import KinectMonitor
@@ -9,6 +9,7 @@ import time
 import json
 import threading
 from pynput.mouse import Controller, Button
+import time
 global version, zrncode, mouseCtrl, mouseController
 
 mouseCotroller = Controller()
@@ -64,7 +65,7 @@ def mouseControl(event, x, y, flags, param):
     # Map Data Accordingly
     global mouseCotroller
     Info.info("", f"DEBUG X: {x} | Y: {y}")
-    mouseCotroller.position = (int(x), int(y))
+    mouseCotroller.position = (int(x*2), int(y*2))
 
 def streamCentroidData():
     global mouseCtrl
@@ -116,6 +117,8 @@ if __name__ == "__main__":
             Info.error("System","Failed to Initialize Systems !, Exiting...")
     else :
         Info.info("System","Systems Initialized Successfully !")
+        Info.debug("System", "Backend Will Initialize in 3 Seconds...")
+        time.sleep(3)
 
     Info.info("","Calling Depth Translater")
     # streamCentroidData()

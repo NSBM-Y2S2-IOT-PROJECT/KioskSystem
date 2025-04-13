@@ -1,4 +1,4 @@
-import wrappers.python.freenect as freenect
+import freenect
 import numpy as np
 # Kinect Class
 
