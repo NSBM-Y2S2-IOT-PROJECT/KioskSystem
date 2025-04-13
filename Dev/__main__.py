@@ -19,6 +19,9 @@ global kinect
 debug = True
 mouseCtrl = True
 
+# Smoothing variables
+prev_x, prev_y = 0, 0
+smooth_factor = 0.7
 
 def systemInit():
     global kinect
@@ -62,13 +65,25 @@ def showDebugInfo(data):
         Info.debug("",data)
 
 def mouseControl(event, x, y, flags, param):
-    # Map Data Accordingly
-    global mouseCotroller
-    Info.info("", f"DEBUG X: {x} | Y: {y}")
-    mouseCotroller.position = (int(x*2), int(y*2))
+    global mouseCotroller, prev_x, prev_y
+
+    if x is None or y is None:
+        return
+
+    # Apply exponential smoothing
+    smooth_x = prev_x * smooth_factor + x * 2 * (1 - smooth_factor)
+    smooth_y = prev_y * smooth_factor + y * 2 * (1 - smooth_factor)
+
+    # Update previous positions for next frame
+    prev_x, prev_y = smooth_x, smooth_y
+
+    Info.info("", f"DEBUG X: {x} | Y: {y} | Smooth X: {int(smooth_x)} | Smooth Y: {int(smooth_y)}")
+    mouseCotroller.position = (int(smooth_x), int(smooth_y))
 
 def streamCentroidData():
-    global mouseCtrl
+    global mouseCtrl, prev_x, prev_y
+    last_valid_centroid = None
+
     while True:
         depth_data = kinect.getDepth()
         filtered_depth, mask, depth_mm = kinect.processDepth(depth_data)
@@ -76,34 +91,36 @@ def streamCentroidData():
         output_image = cv2.cvtColor(filtered_depth.astype(np.uint8), cv2.COLOR_GRAY2BGR)
 
         if centroid is not None and avg_depth is not None:
-            min_depth  = 50
+            min_depth = 50
             max_depth = 100
             min_radius = 5
             max_radius = 50
             radius = int(np.interp(avg_depth, [min_depth, max_depth], [max_radius, min_radius]))
             cv2.circle(output_image, centroid, radius, (0,0,255), -1)
+            last_valid_centroid = centroid
 
-        try:
-            data_entry = {
-                            "timestamp": time.time(),  # Add a timestamp
-                            "centroid": {"x": centroid[0], "y": centroid[1]},
-                            "average_depth": avg_depth
-                        }
-            with open('centroid_data.json', 'w') as json_file:
-                json_file.write(json.dumps(data_entry, indent=4) + "\n")
-        except Exception as e:
-            Info.error("",f"Error writing centroid data, Packet Loss: {e}")
+            try:
+                data_entry = {
+                                "timestamp": time.time(),
+                                "centroid": {"x": centroid[0], "y": centroid[1]},
+                                "average_depth": avg_depth
+                            }
+                with open('centroid_data.json', 'w') as json_file:
+                    json_file.write(json.dumps(data_entry, indent=4) + "\n")
+            except Exception as e:
+                Info.error("",f"Error writing centroid data, Packet Loss: {e}")
 
-        if debug:
-            cv2.imshow('Inverted Filtered Depth w. Centroid', output_image)
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
-        showDebugInfo(f"{centroid}, {avg_depth}")
-        try:
-            if mouseCtrl:
-                mouseControl(0, centroid[0], centroid[1], 0, 0)
-        except Exception as e:
-            Info.error("",f"Mouse Control Failed ! {e}")
+            if debug:
+                cv2.imshow('Inverted Filtered Depth w. Centroid', output_image)
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    break
+            showDebugInfo(f"{centroid}, {avg_depth}")
+
+            try:
+                if mouseCtrl and last_valid_centroid is not None:
+                    mouseControl(0, centroid[0], centroid[1], 0, 0)
+            except Exception as e:
+                Info.error("",f"Mouse Control Failed ! {e}")
 
 
 if __name__ == "__main__":
