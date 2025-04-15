@@ -10,7 +10,6 @@ import json
 import threading
 from pynput.mouse import Controller, Button
 import os
-from sysCheck import System, BtLowEnergy, Gpio, VisumServer, Kinect
 import time
 global version, zrncode, mouseCtrl, mouseController
 
