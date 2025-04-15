@@ -143,6 +143,8 @@ if __name__ == "__main__":
     sysCheck = systemInit()
     if sysCheck == 1:
         Info.warning("System","Failed to Initialize Systems !, Retrying one more time...")
+        Info.info("System","Reflashing Kinect Firmware... Waiting 5 Seconds !")
+        os.system("timeout 5 freenect-micview")
         time.sleep(1)
         sysCheck = systemInit()
         if sysCheck == 1:
