@@ -9,6 +9,8 @@ import time
 import json
 import threading
 from pynput.mouse import Controller, Button
+import os
+from sysCheck import System, BtLowEnergy, Gpio, VisumServer, Kinect
 import time
 global version, zrncode, mouseCtrl, mouseController
 
@@ -22,6 +24,14 @@ mouseCtrl = True
 # Smoothing variables
 prev_x, prev_y = 0, 0
 smooth_factor = 0.7
+
+def initServer():
+    # Initialize the server
+    Info.info("Server", "Killing any existing VISUM Server...")
+    os.system("pkill -f VSM_Serve")
+    Info.info("Server", "Initializing VISUM Server...")
+    os.system("python VSM_Serve/server.py &")
+    Info.info("Server", "VISUM Server Initialized! And running on backend")
 
 def systemInit():
     global kinect
@@ -123,6 +133,12 @@ def streamCentroidData():
                 Info.error("",f"Mouse Control Failed ! {e}")
 
 
+# def VSM_Thread():
+    #[TODO]
+    # os.system("python ")
+    # Initialize The Server From here
+
+
 if __name__ == "__main__":
     print(f"{zrncode} Project Visum - Detection and Recognition Engine v{version}\n\n")
     sysCheck = systemInit()
@@ -142,6 +158,10 @@ if __name__ == "__main__":
     cdThread = threading.Thread(target=streamCentroidData)
     cdThread.start()
     Info.info("","Depth data is being Translated and streamed to centroid_data.json file")
+
+    # Initialize VSM Server
+    #
+
     while True:
         Info.command("", "")
         x = input("Waiting For Command >")

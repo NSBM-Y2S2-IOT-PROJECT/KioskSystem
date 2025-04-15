@@ -3,16 +3,19 @@ import subprocess
 import threading as th
 import time
 from infoWrap import Info
+from sysCheck import System, BtLowEnergy, Gpio, VisumServer, Kinect
+
 
 class KinectMonitor:
     def __init__(self):
         self.kinect = None
-        self.stop_flag = False  # Flag to stop the thread
+        self.stop_flag = False
         self.usbTrip = False
         self.monitor = th.Thread(target=self.monitorKinect)
+        self.Check = Kinect()
 
     def monitorKinect(self):
-        while not self.stop_flag:  # Check the flag in the loop
+        while not self.stop_flag:
             time.sleep(0.5)
             self.kinect = subprocess.Popen("lsusb | grep -i 'xbox nui camera'", shell=True, stdout=subprocess.PIPE)
             stdout, _ = self.kinect.communicate()
@@ -26,17 +29,21 @@ class KinectMonitor:
                     stdout2, _ = getData.communicate()
                     if stdout2.decode().strip():
                         Info.info("", f"{stdout2.decode().strip()}")
+                        self.Check.setModal(True)
+
                     else:
                         self.usbTrip = True
                         Info.error("[ERROR]", "XBOX Kinect Read Buffer Failure! Check Connection")
+                        self.Check.setModal(False)
             else:
                 if not self.usbTrip:
                     self.usbTrip = True
+                    self.Check.setModal(False)
                     Info.error("ERR", "Unable to detect XBOX Kinect Module! Retrying...")
 
     def stop(self):
-        self.stop_flag = True  # Set the flag to stop the thread
-        self.monitor.join()  # Wait for the thread to finish
+        self.stop_flag = True
+        self.monitor.join()
         Info.warning("System", "Kinect Monitor Stopped!")
 
     def start(self):
