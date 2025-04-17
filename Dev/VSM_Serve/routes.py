@@ -45,7 +45,7 @@ def image_check():
 def sys_check(module):
     try:
         import os
-        file_path = os.path.expanduser(f'~/.SysCheck{module}.log')
+        file_path = os.path.expanduser(f'~/.sysCheck{module}.log')
         with open(file_path, 'r') as data:
             data = data.read()
         logger.info(f"{module} data read successfully.")

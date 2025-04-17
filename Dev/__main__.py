@@ -29,7 +29,7 @@ def initServer():
     Info.info("Server", "Killing any existing VISUM Server...")
     os.system("pkill -f VSM_Serve")
     Info.info("Server", "Initializing VISUM Server...")
-    os.system("python VSM_Serve/server.py &")
+    os.system("python VSM_Serve/server.py ")
     Info.info("Server", "VISUM Server Initialized! And running on backend")
 
 def systemInit():
@@ -143,7 +143,8 @@ if __name__ == "__main__":
     sysCheck = systemInit()
     if sysCheck == 1:
         Info.warning("System","Failed to Initialize Systems !, Retrying one more time...")
-        Info.info("System","Reflashing Kinect Firmware... Waiting 5 Seconds !")
+        Info.info("System","Reflashing Kinect Firmware... Waiting 6 Seconds !")
+        time.sleep(1)
         os.system("timeout 5 freenect-micview")
         time.sleep(1)
         sysCheck = systemInit()

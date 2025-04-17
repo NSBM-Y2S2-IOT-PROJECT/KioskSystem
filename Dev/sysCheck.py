@@ -13,7 +13,9 @@ class System:
 
     def setModal(self, stat):
         self.global_sys = "GlobalSys"
-        self.writeFile = open(f"~/.sysCheck{self.global_sys}.log", "w")
+        filepath = os.path.expanduser(f"~/.sysCheck{self.global_sys}.log")
+        os.makedirs(os.path.dirname(filepath), exist_ok=True)
+        self.writeFile = open(filepath, "w")
         self.writeFile.write(f"{stat}")
         self.writeFile.flush()
 
