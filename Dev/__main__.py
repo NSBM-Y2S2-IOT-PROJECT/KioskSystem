@@ -13,11 +13,14 @@ import os
 import time
 import threading
 global version, zrncode, mouseCtrl, mouseController
+import subprocess
+from pathlib import Path
 
 mouseCotroller = Controller()
-version = 1.0
-zrncode = ('\n\n'+Fore.LIGHTBLUE_EX + '[ZRN-PRJCT-VISUM-ENGINE-1.X]' + Style.RESET_ALL)
-global kinect
+version = 1.1
+zrncode = ('\n\n'+Fore.LIGHTBLUE_EX + f'[ZRN-PRJCT-VISUM-ENGINE-{version}]' + Style.RESET_ALL)
+global kinect, monitorTrip, monitor
+monitorTrip = 0
 debug = True
 mouseCtrl = True
 
@@ -26,15 +29,28 @@ prev_x, prev_y = 0, 0
 smooth_factor = 0.7
 
 def initServer():
-    # Initialize the server
+    Info.info("Server", "Creating Required Files")
+    
+    files = [
+        Path.home() / ".sysCheckGlobal.log",
+        Path.home() / ".sysCheckKinect.log",
+        Path.home() / ".sysCheckBtLowEnergy.log",
+        Path.home() / ".sysCheckGPIO.log",
+        Path.home() / ".sysCheckVisumServer.log"
+    ]
+    
+    for file in files:
+        file.touch(exist_ok=True)
+
     Info.info("Server", "Killing any existing VISUM Server...")
-    os.system("pkill -f VSM_Serve")
-    Info.info("Server", "Initializing VISUM Server...")
-    os.system("python3.10 ~/KioskSystem/Dev/VSM_Serve/server.py ")
-    Info.info("Server", "VISUM Server Initialized! And running on backend")
+    subprocess.run(["pkill", "-f", "VSM_Serve"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+    Info.info("Server", "VISUM Server Initialized! Running on background...")
+    subprocess.run(["python3.10", str(Path.home() / "KioskSystem/Dev/VSM_Serve/server.py")])
+
 
 def systemInit():
-    global kinect
+    global kinect, monitor
     Info.info("System","Initializing Systems...")
     Info.info("System","Initializing Kinect Monitor to background...")
     monitor = KinectMonitor()
@@ -50,14 +66,15 @@ def systemInit():
         Info.info("","Video Data Received !")
         # Display All Data
         Info.info("","Displaying All Data...")
-        print(kinect.getDepth())
-        print(kinect.getVideo())
-        print(kinect.getVideoRGB())
-        print(kinect.getVideoBGR())
-        print(kinect.getVideoRGBA())
-        print(kinect.getVideoBGRA())
-        print(kinect.getVideoYUV())
-        print(kinect.getVideoYUYV())
+        Info.debug("", kinect.getDepth())
+        Info.debug("",kinect.getVideo())
+        Info.debug("",kinect.getVideoRGB())
+        Info.debug("",kinect.getVideoBGR())
+        Info.debug("",kinect.getVideoRGBA())
+        
+        Info.debug("",kinect.getVideoBGRA())
+        Info.debug("",kinect.getVideoYUV())
+        Info.debug("",kinect.getVideoYUYV())
         Info.info("","Systems Checked and Ready !")
     except Exception as e:
         monitor.stop()
@@ -95,10 +112,14 @@ def streamCentroidData():
     last_valid_centroid = None
 
     while True:
-        depth_data = kinect.getDepth()
-        filtered_depth, mask, depth_mm = kinect.processDepth(depth_data)
-        centroid, avg_depth = kinect.calculateCentroidnDepth(mask, depth_mm)
-        output_image = cv2.cvtColor(filtered_depth.astype(np.uint8), cv2.COLOR_GRAY2BGR)
+        try:
+            depth_data = kinect.getDepth()
+            filtered_depth, mask, depth_mm = kinect.processDepth(depth_data)
+            centroid, avg_depth = kinect.calculateCentroidnDepth(mask, depth_mm)
+            output_image = cv2.cvtColor(filtered_depth.astype(np.uint8), cv2.COLOR_GRAY2BGR)
+        except:
+            info.Error("", "Depth Data Stream crashed !")
+            pass
 
         if centroid is not None and avg_depth is not None:
             min_depth = 50
@@ -120,10 +141,10 @@ def streamCentroidData():
             except Exception as e:
                 Info.error("",f"Error writing centroid data, Packet Loss: {e}")
 
-            if debug:
-                cv2.imshow('Inverted Filtered Depth w. Centroid', output_image)
-                if cv2.waitKey(1) & 0xFF == ord('q'):
-                    break
+            # if debug:
+            #     cv2.imshow('Inverted Filtered Depth w. Centroid', output_image)
+            #     if cv2.waitKey(1) & 0xFF == ord('q'):
+            #         break
             showDebugInfo(f"{centroid}, {avg_depth}")
 
             try:
@@ -141,40 +162,54 @@ def streamCentroidData():
 
 if __name__ == "__main__":
     print(f"{zrncode} Project Visum - Detection and Recognition Engine v{version}\n\n")
-    sysCheck = systemInit()
-    serverThread = threading.Thread(target=initServer)
-    serverThread.start()
-    if sysCheck == 1:
-        Info.warning("System","Failed to Initialize Systems !, Retrying one more time...")
-        Info.info("System","Reflashing Kinect Firmware... Waiting 6 Seconds !")
-        time.sleep(1)
-        os.system("timeout 5 freenect-micview")
-        time.sleep(1)
-        sysCheck = systemInit()
-        if sysCheck == 1:
-            Info.error("System","Failed to Initialize Systems !, Exiting...")
-    else :
-        Info.info("System","Systems Initialized Successfully !")
-        Info.debug("System", "Backend Will Initialize in 3 Seconds...")
-        time.sleep(3)
-
-    Info.info("","Calling Depth Translater")
-    # streamCentroidData()
-    cdThread = threading.Thread(target=streamCentroidData)
-    cdThread.start()
-    Info.info("","Depth data is being Translated and streamed to centroid_data.json file")
-
-    # Initialize VSM Server
-    #
-
     while True:
-        Info.command("", "")
-        x = input("Waiting For Command >")
-        if x == "thread.cd.stop":
-            cdThread.stop()
-        elif x == "init.mouse":
-            mouseCtrl = True
-        elif x == "deinit.mouse":
-            mouseCtrl = False
-        # if x.split(".")[0] == "thread":
-        #     ifx.split(".")[1] == "stop"
+        try:
+            sysCheck = systemInit()
+            serverThread = threading.Thread(target=initServer)
+            serverThread.start()
+            while True:
+                if sysCheck == 1:
+                    Info.warning("System","Failed to Initialize Systems !, Retrying one more time...")
+                    Info.info("System","Reflashing Kinect Firmware... Waiting 6 Seconds !")
+                    time.sleep(1)
+                    os.system("timeout 5 freenect-micview")
+                    time.sleep(1)
+                    sysCheck = systemInit()
+                    if sysCheck == 1:
+                        Info.error("System","Failed to Initialize Systems !, Exiting...")
+                else :
+                    Info.info("System","Systems Initialized Successfully !")
+                    Info.debug("System", "Backend Will Initialize in 3 Seconds...")
+                    time.sleep(3)
+                    break
+
+            Info.info("","Calling Depth Translater")
+            # streamCentroidData()
+            try:
+                cdThread = threading.Thread(target=streamCentroidData)
+                cdThread.start()
+                Info.info("","Depth data is being Translated and streamed to centroid_data.json file")
+            except:
+                Info.Error("","Centroid Data Stream Crashed !")
+
+            # Initialize VSM Server
+            #
+
+            while True:
+                Info.command("", "")
+                x = input("Waiting For Command >")
+                if x == "thread.cd.stop":
+                    cdThread.stop()
+                elif x == "init.mouse":
+                    mouseCtrl = True
+                elif x == "deinit.mouse":
+                    mouseCtrl = False
+                elif x == "debug.stop":
+                    debug = False
+                elif x == "debug.start":
+                    debug = True
+                # if x.split(".")[0] == "thread":
+                #     ifx.split(".")[1] == "stop"
+        except:
+            Info.error("","System Crashed ! Resetting...")
+            pass

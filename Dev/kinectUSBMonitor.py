@@ -12,9 +12,10 @@ class KinectMonitor:
         self.stop_flag = False
         self.usbTrip = False
         self.monitor = th.Thread(target=self.monitorKinect)
-        self.Check = Kinect()
 
     def monitorKinect(self):
+        sysCheck = Kinect()
+        sysCheck.setModal("True")
         while not self.stop_flag:
             time.sleep(0.5)
             self.kinect = subprocess.Popen("lsusb | grep -i 'xbox nui camera'", shell=True, stdout=subprocess.PIPE)
@@ -29,17 +30,21 @@ class KinectMonitor:
                     stdout2, _ = getData.communicate()
                     if stdout2.decode().strip():
                         Info.info("", f"{stdout2.decode().strip()}")
-                        self.Check.setModal(True)
+                        sysCheck.setModal("True")
 
                     else:
                         self.usbTrip = True
                         Info.error("[ERROR]", "XBOX Kinect Read Buffer Failure! Check Connection")
-                        self.Check.setModal(False)
+                        sysCheck.setModal("False")
             else:
                 if not self.usbTrip:
                     self.usbTrip = True
-                    self.Check.setModal(False)
+                    sysCheck.setModal("False")
                     Info.error("ERR", "Unable to detect XBOX Kinect Module! Retrying...")
+                    Info.info("I","Re-Flashing Kinect Firmware")
+                    os.system("timeout 5 freenect-micview")
+
+                    
 
     def stop(self):
         self.stop_flag = True

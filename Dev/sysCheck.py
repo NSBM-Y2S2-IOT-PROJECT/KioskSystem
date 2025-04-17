@@ -8,42 +8,56 @@ class System:
     def __init__(self):
         self.btlowenergy = False
         self.gpio = False
-        self.VisumServer  = False
+        self.VisumServer = False
         self.kinect = False
+        self.global_sys = "GlobalSys"
 
     def setModal(self, stat):
-        self.global_sys = "GlobalSys"
         filepath = os.path.expanduser(f"~/.sysCheck{self.global_sys}.log")
-        os.makedirs(os.path.dirname(filepath), exist_ok=True)
-        self.writeFile = open(filepath, "w")
-        self.writeFile.write(f"{stat}")
-        self.writeFile.flush()
+        with open(filepath, "w") as writeFile:
+            writeFile.write(f"{stat}")
+            writeFile.flush()
 
 
 class BtLowEnergy(System):
+    def __init__(self):
+        super().__init__()
+        self.global_sys = "BtLowEnergy"
+        
     @override
     def setModal(self, stat):
-        self.globalSys = "BtLowEnergy"
         super().setModal(stat)
         self.btlowenergy = True
 
+
 class Gpio(System):
+    def __init__(self):
+        super().__init__()
+        self.global_sys = "GPIO"
+        
     @override
     def setModal(self, stat):
-        self.globalSys = "GPIO"
         super().setModal(stat)
         self.gpio = True
 
+
 class VisumServer(System):
+    def __init__(self):
+        super().__init__()
+        self.global_sys = "VisumServer"
+        
     @override
     def setModal(self, stat):
-        self.globalSys = "VisumServer"
         super().setModal(stat)
         self.VisumServer = True
 
+
 class Kinect(System):
+    def __init__(self):
+        super().__init__()
+        self.global_sys = "Kinect"
+        
     @override
     def setModal(self, stat):
-        self.globalSys = "Kinect"
         super().setModal(stat)
         self.kinect = True

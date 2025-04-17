@@ -1,9 +1,12 @@
 from flask import Flask
+from flask_cors import CORS
 from routes import routes
 from infoWrap import Info
 
 # Initialize Flask app and logger
 app = Flask(__name__)
+CORS(app)
+
 logger = Info()
 
 # Register the routes Blueprint
