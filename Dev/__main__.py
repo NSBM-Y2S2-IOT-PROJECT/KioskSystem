@@ -11,6 +11,7 @@ import threading
 from pynput.mouse import Controller, Button
 import os
 import time
+import threading
 global version, zrncode, mouseCtrl, mouseController
 
 mouseCotroller = Controller()
@@ -29,7 +30,7 @@ def initServer():
     Info.info("Server", "Killing any existing VISUM Server...")
     os.system("pkill -f VSM_Serve")
     Info.info("Server", "Initializing VISUM Server...")
-    os.system("python VSM_Serve/server.py ")
+    os.system("python3.10 ~/KioskSystem/Dev/VSM_Serve/server.py ")
     Info.info("Server", "VISUM Server Initialized! And running on backend")
 
 def systemInit():
@@ -141,6 +142,8 @@ def streamCentroidData():
 if __name__ == "__main__":
     print(f"{zrncode} Project Visum - Detection and Recognition Engine v{version}\n\n")
     sysCheck = systemInit()
+    serverThread = threading.Thread(target=initServer)
+    serverThread.start()
     if sysCheck == 1:
         Info.warning("System","Failed to Initialize Systems !, Retrying one more time...")
         Info.info("System","Reflashing Kinect Firmware... Waiting 6 Seconds !")
