@@ -54,3 +54,11 @@ def sys_check(module):
     except Exception as e:
         logger.error(f"Unable to read {module} data: {str(e)}")
         return jsonify({"error": "False"}), 500
+
+@routes.route('/data/get_recommendations/<skin_color>/<skin_texture>', methods=['GET'])
+def get_recommendations(skin_color, skin_texture):
+    try:
+        logger.info(f"Received Recommendation Request for Skin Color{skin_color} and Texture {skin_texture}")
+    except:
+        logger.error("Error in Recommendation Request")
+        return jsonify({"error": "False"}), 500
