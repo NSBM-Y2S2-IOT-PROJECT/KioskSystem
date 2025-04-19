@@ -1,11 +1,13 @@
 from flask import Blueprint, request, jsonify
 from infoWrap import Info
 from analysis import analyze_skin
+from llm_service import llmBridge, initializeChroma
 from PIL import Image
 import io
 
 # Initialize logger
 logger = Info()
+initializeChroma()
 
 # Create a Blueprint for the routes
 routes = Blueprint('routes', __name__)
@@ -59,6 +61,8 @@ def sys_check(module):
 def get_recommendations(skin_color, skin_texture):
     try:
         logger.info(f"Received Recommendation Request for Skin Color{skin_color} and Texture {skin_texture}")
-    except:
-        logger.error("Error in Recommendation Request")
+        return llmBridge(f"Recommendations for {skin_color, skin_texture}", rag=True)
+        # return jsonify({"recommendations": "Use these stuff, <Links> Stuff names etc."}), 200
+    except Exception as e:
+        logger.error(f"Error in Recommendation Request, {str(e)}")
         return jsonify({"error": "False"}), 500
