@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from infoWrap import Info
-from analysis import analyze_skin
+from Dev.VSM_Serve.face_analysis.analysis import analyze_skin
 from llm_service import llmBridge, initializeChroma
 from PIL import Image
 import io
@@ -61,6 +61,8 @@ def sys_check(module):
 def get_recommendations(skin_color, skin_texture):
     try:
         logger.info(f"Received Recommendation Request for Skin Color{skin_color} and Texture {skin_texture}")
+        output = llmBridge(f"Recommendations for {skin_color, skin_texture}", rag=True)
+        logger.debug(output)
         return llmBridge(f"Recommendations for {skin_color, skin_texture}", rag=True)
         # return jsonify({"recommendations": "Use these stuff, <Links> Stuff names etc."}), 200
     except Exception as e:

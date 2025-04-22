@@ -41,21 +41,49 @@ def RAG(prompt):
 
 def extractJson(llm_output):
     try:
-        extract_text = llm_output.split("```json")[1].split("```")[0]
+        extract_text = llm_output
         json_output = eval(extract_text)
         return json_output
     except Exception as e:
         print(f"Error extracting JSON: {e}")
-        return {"error": "A Serverside Error Occured ! Please try again later."}
+        return llm_output
 
 
 def llmBridge(prompt, rag=False):
+    systemPrompt = '''
+    You are a skincare assistant designed to analyze skin characteristics and provide personalized product and ingredient recommendations. Based on the user’s skin tone, texture, and concerns, generate advice in the following JSON structure:
+
+    {
+      "recommendations": "A paragraph summarizing your recommendations based on the user’s skin profile. Include suggested product types, ingredient benefits, and how they work together.",
+      "recommended_ingredients": [
+        "Ingredient: Brief explanation of how it helps",
+        "Ingredient: Brief explanation of how it helps"
+      ],
+      "suggested_products": [
+        "Product Name: Short description of what it does and why it's recommended",
+        "Product Name: Short description of what it does and why it's recommended"
+      ]
+    }
+    Requirements:
+
+    The recommendations field should be a natural, well-written paragraph.
+
+    The recommended_ingredients and suggested_products fields should each contain plain text strings (the client will render them as bullet points).
+
+    Use professional and friendly language.
+
+    Tailor product and ingredient recommendations to the user's specific skin tone, texture, and concerns.
+
+    Use specific product names (e.g., “AXIS-Y Dark Spot Correcting Glow Serum”) when possible.
+
+    Do not include Markdown or formatting—return raw JSON only.
+    '''
     if rag:
         docs, metadata, ids = RAG(prompt)
         prompt = f"Based on the following documents: {docs}, please provide a response to the prompt: {prompt}"
     else:
         prompt = f"Please provide a response to the prompt: {prompt}"
-    
+
 
     client = openai.OpenAI(
         base_url="http://localhost:8080/v1",
@@ -66,7 +94,7 @@ def llmBridge(prompt, rag=False):
     model="llama3.2",
     temperature=1,
     messages=[
-        {"role": "system", "content": "You are  an assistant designed to help with skincare advice. Analyze the input and give appropriate advice. Provide the recommendation in json format."
+        {"role": "system", "content": f"{systemPrompt}"
         "with keys links, products, and ingredients, recommendation_description"},
         {"role": "user", "content": prompt}
     ]
