@@ -35,7 +35,7 @@ class Kinect:
 
     def processDepth(self, data):
         self.depth_mm = data * 0.124987
-        mask = np.logical_and(self.depth_mm >= 10, self.depth_mm <= 100)
+        mask = np.logical_and(self.depth_mm >= 50, self.depth_mm <= 70)
         output = np.zeros_like(self.depth_mm)
         output[mask] = 255
         return output, mask, self.depth_mm

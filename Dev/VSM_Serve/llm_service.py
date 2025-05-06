@@ -40,9 +40,11 @@ def RAG(prompt):
     return docs, metadata, ids
 
 def extractJson(llm_output):
+    print(llm_output)
     try:
         extract_text = llm_output
         json_output = eval(extract_text)
+        print(json_output)
         return json_output
     except Exception as e:
         print(f"Error extracting JSON: {e}")
@@ -62,6 +64,7 @@ def llmBridge(prompt, rag=False):
       "suggested_products": [
         "Product Name: Short description of what it does and why it's recommended",
         "Product Name: Short description of what it does and why it's recommended"
+        "Product Link: A Link that is provided based on the docs. If there is no link no need"
       ]
     }
     Requirements:
@@ -70,7 +73,7 @@ def llmBridge(prompt, rag=False):
 
     The recommended_ingredients and suggested_products fields should each contain plain text strings (the client will render them as bullet points).
 
-    Use professional and friendly language.
+    No any comments
 
     Tailor product and ingredient recommendations to the user's specific skin tone, texture, and concerns.
 

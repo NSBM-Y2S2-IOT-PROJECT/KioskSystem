@@ -141,10 +141,10 @@ def streamCentroidData():
             except Exception as e:
                 Info.error("",f"Error writing centroid data, Packet Loss: {e}")
 
-            # if debug:
-            #     cv2.imshow('Inverted Filtered Depth w. Centroid', output_image)
-            #     if cv2.waitKey(1) & 0xFF == ord('q'):
-            #         break
+            if debug:
+                cv2.imshow('Inverted Filtered Depth w. Centroid', output_image)
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    break
             showDebugInfo(f"{centroid}, {avg_depth}")
 
             try:
@@ -159,9 +159,16 @@ def streamCentroidData():
     # os.system("python ")
     # Initialize The Server From here
 
+# def gpio_thread():
+#     os.system("sudo  /home/zerone/KioskSystem/.kioskenv/bin/python /home/zerone/KioskSystem/Dev/VSM_Serve/GPIO_Service.py")
+
+# gpiosys  = threading.Thread(target=gpio_thread)
 
 if __name__ == "__main__":
     print(f"{zrncode} Project Visum - Detection and Recognition Engine v{version}\n\n")
+    # Info.info("Server", "Waiting for Superuser for GPIO Service...")
+    # os.system("sudo chmod")
+    # gpiosys.start()
     while True:
         try:
             sysCheck = systemInit()
