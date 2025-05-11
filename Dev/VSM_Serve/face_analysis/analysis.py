@@ -20,9 +20,8 @@ def analyze_skin(image_pil):
     hog = cv2.HOGDescriptor()
     hog.setSVMDetector(cv2.HOGDescriptor_getDefaultPeopleDetector())
 
-    # Detect humans
     boxes, weights = hog.detectMultiScale(opencv_image, winStride=(8, 8), padding=(16, 16), scale=1.05)
-    # Filter weak detect
+
     if len(boxes) == 0:
         face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
         gray = cv2.cvtColor(opencv_image, cv2.COLOR_BGR2GRAY)
@@ -69,7 +68,7 @@ def analyze_skin(image_pil):
     r, g, b = dominant_color
     import colorsys
     h, s, v = colorsys.rgb_to_hsv(r/255, g/255, b/255)
-    # classification
+
     if v < 0.4:
         skin_tone = "Dark"
     elif v < 0.55:
@@ -81,14 +80,11 @@ def analyze_skin(image_pil):
     else:
         skin_tone = "Pale"
     
-    # texture
     gray = cv2.cvtColor(cropped_rgb, cv2.COLOR_RGB2GRAY)
     filtered = cv2.bilateralFilter(gray, 9, 75, 75)
     laplacian = cv2.Laplacian(filtered, cv2.CV_64F)
     texture_variance = np.var(laplacian)
-    # texture_std = np.std(laplacian)
 
-    # Classify texture
     if texture_variance < 20:
         texture_label = "Smooth"
     elif texture_variance < 50:
@@ -97,3 +93,42 @@ def analyze_skin(image_pil):
         texture_label = "Rough"
 
     return skin_tone, texture_label
+
+def validate_landmarks(landmarks):
+
+    if not isinstance(landmarks, list) or len(landmarks) < 5:
+        return False, "Landmarks should be a list of at least 5 points."
+    
+    for point in landmarks:
+        if not isinstance(point, list) or len(point) != 2:
+            return False, "Each landmark should be a list of two numerical values [x, y]."
+        if not all(isinstance(coord, (int, float)) for coord in point):
+            return False, "Each coordinate [x, y] should be a number."
+    
+    return True, None
+
+def analyze_image_for_beauty(landmarks: list) -> float:
+    try:
+        left_eye = landmarks[0]
+        right_eye = landmarks[1]
+        nose = landmarks[2]
+        mouth_left = landmarks[3]
+        mouth_right = landmarks[4]
+
+        # Calculate distances
+        eye_distance = np.linalg.norm(np.array(left_eye) - np.array(right_eye))
+        nose_to_eye_distance = np.linalg.norm(np.array(nose) - np.array(left_eye))
+        mouth_to_nose_distance = np.linalg.norm(np.array(mouth_left) - np.array(nose))
+
+        # Calculate Golden Ratio-based score
+        ratio_1 = eye_distance / nose_to_eye_distance
+        ratio_2 = mouth_to_nose_distance / nose_to_eye_distance
+
+        # Beauty score
+        beauty_score = (abs(ratio_1 - GOLDEN_RATIO) + abs(ratio_2 - GOLDEN_RATIO)) * 50
+        beauty_score = max(min(beauty_score, 100), 0)  # Ensure score is between 0 and 100
+        return round(beauty_score, 2)
+
+    except Exception as e:
+        print(f"Error in analyzing image: {e}")
+        return 0
