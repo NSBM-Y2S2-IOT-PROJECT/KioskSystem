@@ -15,13 +15,15 @@ import threading
 global version, zrncode, mouseCtrl, mouseController
 import subprocess
 from pathlib import Path
+import pyvirtualcam
+
 
 mouseCotroller = Controller()
 version = 1.1
 zrncode = ('\n\n'+Fore.LIGHTBLUE_EX + f'[ZRN-PRJCT-VISUM-ENGINE-{version}]' + Style.RESET_ALL)
 global kinect, monitorTrip, monitor
 monitorTrip = 0
-debug = True
+debug = False
 mouseCtrl = True
 
 # Smoothing variables
@@ -107,6 +109,54 @@ def mouseControl(event, x, y, flags, param):
     Info.info("", f"DEBUG X: {x} | Y: {y} | Smooth X: {int(smooth_x)} | Smooth Y: {int(smooth_y)}")
     mouseCotroller.position = (int(smooth_x), int(smooth_y))
 
+
+def kinect_video_stream():
+    global kinect
+    try:
+        # Get an initial frame to determine the size
+        video_data = kinect.getVideo()
+        height, width, _ = video_data.shape
+        
+        # Open virtual camera with RGB format (more compatible)
+        with pyvirtualcam.Camera(width=width, height=height, fps=30, fmt=pyvirtualcam.PixelFormat.RGB) as cam:
+            print(f'Virtual camera started: {cam.device}')
+            
+            while True:
+                try:
+                    video_data = kinect.getVideoRGB()
+                    skin_mask = detect_skin(video_data)
+
+                    black_background = np.zeros_like(video_data)
+                    skin_only = np.where(skin_mask[:, :, None] == 255, video_data, black_background)
+                    cam.send(skin_only)
+                    cam.sleep_until_next_frame()
+                    display_frame = cv2.cvtColor(skin_only, cv2.COLOR_RGB2BGR)
+                    cv2.imshow('Kinect Skin Stream', display_frame)
+
+                    if cv2.waitKey(1) & 0xFF == ord('q'):
+                        break
+                except Exception as e:
+                    Info.error("", f"Video Stream Error: {e}")
+                    break
+    except Exception as e:
+        Info.error("", f"Failed to start virtual camera: {e}")
+    finally:
+        cv2.destroyAllWindows()
+
+def detect_skin(frame):
+    hsv = cv2.cvtColor(frame, cv2.COLOR_RGB2HSV)
+
+    lower_skin = np.array([0, 20, 70], dtype=np.uint8)
+    upper_skin = np.array([20, 255, 255], dtype=np.uint8)
+    mask = cv2.inRange(hsv, lower_skin, upper_skin)
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+    mask = cv2.erode(mask, kernel, iterations=1)
+    mask = cv2.dilate(mask, kernel, iterations=2)
+    mask = cv2.GaussianBlur(mask, (3, 3), 0)
+    
+    return mask
+
+
 def streamCentroidData():
     global mouseCtrl, prev_x, prev_y
     last_valid_centroid = None
@@ -118,7 +168,7 @@ def streamCentroidData():
             centroid, avg_depth = kinect.calculateCentroidnDepth(mask, depth_mm)
             output_image = cv2.cvtColor(filtered_depth.astype(np.uint8), cv2.COLOR_GRAY2BGR)
         except:
-            info.Error("", "Depth Data Stream crashed !")
+            Info.Error("", "Depth Data Stream crashed !")
             pass
 
         if centroid is not None and avg_depth is not None:
@@ -172,6 +222,10 @@ if __name__ == "__main__":
     while True:
         try:
             sysCheck = systemInit()
+            kinectVideoThread = threading.Thread(target=kinect_video_stream)
+            if debug == False:
+                kinectVideoThread.start()
+            Info.info("System","Kinect Video Stream Initialized !")
             serverThread = threading.Thread(target=initServer)
             serverThread.start()
             while True:

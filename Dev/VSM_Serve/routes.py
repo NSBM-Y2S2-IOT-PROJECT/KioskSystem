@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from infoWrap import Info
-from face_analysis.analysis import analyze_skin
+from face_analysis.analysis import analyze_skin, analyze_image_for_beauty, validate_landmarks
 from llm_service import llmBridge, initializeChroma
 from PIL import Image
 from BLE_Service import BluetoothMonitor
@@ -141,3 +141,19 @@ def scan_bluetooth():
         return jsonify({
             "error": f"An error occurred during Bluetooth scanning: {str(e)}"
         }), 500
+    
+
+@routes.route('/data/score', methods=['POST'])
+def get_beauty_score():
+    data = request.get_json()
+
+    if 'landmarks' not in data:
+        return jsonify({'error': 'Facial landmarks not provided'}), 400
+
+    landmarks = data['landmarks']
+    is_valid, error_message = validate_landmarks(landmarks)
+    if not is_valid:
+        return jsonify({'error': error_message}), 400
+
+    score = analyze_image_for_beauty(landmarks)
+    return jsonify({'score': f"{score}/100"})

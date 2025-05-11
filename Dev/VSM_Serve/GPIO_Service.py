@@ -3,6 +3,7 @@ import time
 from sysCheck import System, BtLowEnergy, Gpio, VisumServer, Kinect
 from infoWrap import Info
 from pynput.keyboard import Key, Controller
+import os
 
 # Initialize keyboard controller
 keyboard = Controller()
@@ -16,6 +17,8 @@ info = Info()
 # Track button states to prevent key spamming
 last_b1_state = 1  # Initialize to released
 last_b2_state = 1  # Initialize to released
+no_user_counter = 0
+time.sleep(5)
 
 try:
     sysCheck.setModal("True")
@@ -39,20 +42,36 @@ try:
                 
                 # Button 2 pressed
                 if b2 == 0 and last_b2_state == 1:
-                    keyboard.press('b')
-                    keyboard.release('b')
-                    info.debug("Emulated keyboard press: B")
+                    keyboard.press(Key.f5)
+                    keyboard.release(Key.f5)
+                    info.debug("Emulated keyboard press: F5")
                 
+                if b1 == 0 and b2 == 0:
+                    info.debug("Both buttons pressed")
+                    os.system("setsid sudo bash /home/zerone/KioskSystem/Dev/VSM_Serve/server_reset.sh")
+
                 # Update button states
                 last_b1_state = b1
                 last_b2_state = b2
                 
-                if distance >= 0:
-                    pass
-                    info.debug(f"Distance: {distance:.2f} cm")
+                info.debug(f"Distance: {distance:.2f} cm")
+                if distance >= 50 and distance < 100 :
+                    print("User Detected !")
+                    no_user_counter = 0
+                elif distance >= 150:
+                    no_user_counter += 1
+                
+                if no_user_counter > 10:
+                    os.system("xrandr --output VGA-1-1 --off")
                 else:
-                    pass
-                    info.debug("Distance: No Echo")
+                    os.system("xrandr --output VGA-1-1 --auto")
+
+                # if distance >= 0:
+                #     pass
+                #     info.debug(f"Distance: {distance:.2f} cm")
+                # else:
+                #     pass
+                #     info.debug("Distance: No Echo")
                 info.debug("-" * 30)
             except Exception as e:
                 info.debug(f"Parse error: {e}")
